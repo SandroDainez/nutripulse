@@ -310,6 +310,18 @@
       line-height: 1.4;
     }
     .tbca-box a { color: #047857; font-weight: 700; text-decoration: underline; }
+    .tbca-box ol { margin: 8px 0 0 18px; padding: 0; text-align: left; }
+    .tbca-box li { margin-bottom: 5px; }
+    .btn-create-food {
+      background: #ecfdf5;
+      border: 1px solid var(--primary);
+      color: #047857;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
 
     .history-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; width: 100%; text-align: left; font: inherit; color: inherit; }
     .history-card:hover { border-color: var(--primary); background: #f0fdf4; }
@@ -325,6 +337,7 @@
         --border: #334155;
       }
       .date-bar, .date-nav-btn, .chip, .history-card, .bmi-box, .btn-secondary { background: #0f172a; color: var(--text); }
+      .btn-create-food { background: #064e3b; color: #d1fae5; border-color: #10b981; }
       .modal-content { background: #1e293b; color: var(--text); }
       .form-group input, .form-group select, #grams-input, #water-custom-input { background: #0f172a; color: var(--text); border-color: var(--border); }
       .food-list-item:hover, .history-card:hover { background: #14532d; }
@@ -359,34 +372,42 @@
     </div>
 
     <div class="card">
-      <div class="calorie-summary">
-        <div>
-          <span id="cal-remaining-label" style="color: var(--muted); font-size: 0.85rem;">Restantes</span>
-          <div class="calorie-number" id="cal-remaining">0</div>
-        </div>
-        <div style="text-align: right; font-size: 0.85rem; color: var(--muted);">
-          Meta: <strong id="cal-goal-label">0 kcal</strong><br>
-          Consumo: <strong id="cal-consumed">0 kcal</strong>
+      <div id="goals-prompt" class="empty-hint">
+        Complete seu perfil para calcular as metas de calorias, macros e água.
+        <div style="margin-top: 8px;">
+          <button type="button" class="btn-link" onclick="openProfileModal(true)">Abrir Perfil e metas</button>
         </div>
       </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="cal-progress"></div>
-      </div>
-      <div class="macros-row">
-        <div class="macro-box" style="color: #0284c7;">
-          Proteína
-          <span class="macro-val" id="macro-p">0 / 0g</span>
-          <div class="macro-bar"><span id="macro-p-bar" style="background: #0284c7;"></span></div>
+      <div id="goals-stats" hidden>
+        <div class="calorie-summary">
+          <div>
+            <span id="cal-remaining-label" style="color: var(--muted); font-size: 0.85rem;">Restantes</span>
+            <div class="calorie-number" id="cal-remaining">0</div>
+          </div>
+          <div style="text-align: right; font-size: 0.85rem; color: var(--muted);">
+            Meta: <strong id="cal-goal-label">0 kcal</strong><br>
+            Consumo: <strong id="cal-consumed">0 kcal</strong>
+          </div>
         </div>
-        <div class="macro-box" style="color: #d97706;">
-          Carboidrato
-          <span class="macro-val" id="macro-c">0 / 0g</span>
-          <div class="macro-bar"><span id="macro-c-bar" style="background: #d97706;"></span></div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="cal-progress"></div>
         </div>
-        <div class="macro-box" style="color: #dc2626;">
-          Gordura
-          <span class="macro-val" id="macro-g">0 / 0g</span>
-          <div class="macro-bar"><span id="macro-g-bar" style="background: #dc2626;"></span></div>
+        <div class="macros-row">
+          <div class="macro-box" style="color: #0284c7;">
+            Proteína
+            <span class="macro-val" id="macro-p">0 / 0g</span>
+            <div class="macro-bar"><span id="macro-p-bar" style="background: #0284c7;"></span></div>
+          </div>
+          <div class="macro-box" style="color: #d97706;">
+            Carboidrato
+            <span class="macro-val" id="macro-c">0 / 0g</span>
+            <div class="macro-bar"><span id="macro-c-bar" style="background: #d97706;"></span></div>
+          </div>
+          <div class="macro-box" style="color: #dc2626;">
+            Gordura
+            <span class="macro-val" id="macro-g">0 / 0g</span>
+            <div class="macro-bar"><span id="macro-g-bar" style="background: #dc2626;"></span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -395,7 +416,7 @@
       <div class="water-header">
         <div>
           <strong>Hidratação diária</strong>
-          <div class="water-guidance" id="water-sublabel">Recomendação: 35 ml/kg de peso</div>
+          <div class="water-guidance" id="water-sublabel">A meta de água depende do seu peso no Perfil.</div>
         </div>
         <div class="water-ml" id="water-display">0 ml</div>
       </div>
@@ -406,7 +427,7 @@
 
       <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted);">
         <span id="water-status">Nenhum consumo registrado</span>
-        <span id="water-goal-text">Meta: 0 ml</span>
+        <span id="water-goal-text">Meta: complete o Perfil</span>
       </div>
 
       <div class="water-actions">
@@ -459,11 +480,12 @@
       </div>
       <div class="modal-scrollable-body">
         <p id="profile-onboarding" class="empty-hint" style="display: none; padding: 0 0 12px;">Preencha seu perfil para calcular as metas de calorias, macros e água.</p>
-        <div class="bmi-box" id="profile-preview">IMC e metas aparecem ao preencher peso e altura.</div>
+        <div class="bmi-box" id="profile-preview">IMC e metas aparecem ao preencher o perfil.</div>
         <form onsubmit="saveProfile(event)">
           <div class="form-group">
             <label for="p-sex">Sexo biológico</label>
-            <select id="p-sex">
+            <select id="p-sex" required>
+              <option value="">Selecione</option>
               <option value="male">Masculino</option>
               <option value="female">Feminino</option>
             </select>
@@ -471,20 +493,21 @@
           <div style="display: flex; gap: 8px;">
             <div class="form-group" style="flex: 1;">
               <label for="p-age">Idade (anos)</label>
-              <input type="number" id="p-age" required min="10" max="100">
+              <input type="number" id="p-age" required min="10" max="100" placeholder="">
             </div>
             <div class="form-group" style="flex: 1;">
               <label for="p-weight">Peso (kg)</label>
-              <input type="number" step="0.1" id="p-weight" required min="30" max="250">
+              <input type="number" step="0.1" id="p-weight" required min="30" max="250" placeholder="">
             </div>
             <div class="form-group" style="flex: 1;">
               <label for="p-height">Altura (cm)</label>
-              <input type="number" id="p-height" required min="100" max="230">
+              <input type="number" id="p-height" required min="100" max="230" placeholder="">
             </div>
           </div>
           <div class="form-group">
             <label for="p-activity">Nível de atividade física</label>
-            <select id="p-activity">
+            <select id="p-activity" required>
+              <option value="">Selecione</option>
               <option value="1.2">Sedentário (pouco ou nenhum exercício)</option>
               <option value="1.375">Leve (exercício 1 a 3 dias/semana)</option>
               <option value="1.55">Moderado (exercício 3 a 5 dias/semana)</option>
@@ -493,7 +516,8 @@
           </div>
           <div class="form-group">
             <label for="p-goal">Objetivo</label>
-            <select id="p-goal">
+            <select id="p-goal" required>
+              <option value="">Selecione</option>
               <option value="-400">Emagrecimento (-400 kcal)</option>
               <option value="0">Manutenção de peso</option>
               <option value="350">Hipertrofia (+350 kcal)</option>
@@ -538,7 +562,7 @@
             <option value="outro">Outro</option>
           </select>
         </div>
-        <button type="button" onclick="openCustomFoodModal()" style="background: none; border: none; color: var(--primary); font-size: 0.82rem; font-weight: bold; cursor: pointer;">+ Criar alimento</button>
+        <button type="button" class="btn-create-food" onclick="openCustomFoodModal(null, document.getElementById('search-input').value.trim())">Não achei — cadastrar alimento</button>
       </div>
 
       <div class="cat-chips" id="cat-chips">
@@ -556,10 +580,12 @@
       <div id="foods-container" class="modal-scrollable-body" style="max-height: 38vh;"></div>
 
       <div class="tbca-box">
-        Não encontrou seu alimento?<br>
-        <a href="https://www.tbca.net.br/base-dados/composicao_alimentos.php" target="_blank" rel="noopener noreferrer">
-          Pesquisar na base oficial da TBCA (USP)
-        </a>
+        <strong>Não achou na lista?</strong> Cadastre em 3 passos:
+        <ol>
+          <li>Busque o alimento na <a href="https://www.tbca.net.br/base-dados/composicao_alimentos.php" target="_blank" rel="noopener noreferrer">TBCA (USP)</a>.</li>
+          <li>Copie kcal, proteínas, carboidratos e gorduras <strong>por 100 g</strong>.</li>
+          <li>Toque em <strong>Não achei — cadastrar alimento</strong> e cole os valores.</li>
+        </ol>
       </div>
     </div>
   </div>
@@ -572,7 +598,12 @@
       </div>
       <div class="modal-scrollable-body">
         <div class="tbca-box" style="margin-top: 0; margin-bottom: 12px; text-align: left;">
-          <strong>Dica:</strong> se não souber a composição, <a href="https://www.tbca.net.br/base-dados/composicao_alimentos.php" target="_blank" rel="noopener noreferrer">consulte a TBCA (USP)</a> e preencha os valores de 100 g abaixo.
+          <strong>Como cadastrar um alimento</strong>
+          <ol>
+            <li>Abra a <a href="https://www.tbca.net.br/base-dados/composicao_alimentos.php" target="_blank" rel="noopener noreferrer">TBCA (USP)</a> e busque o nome.</li>
+            <li>Anote os valores de <strong>100 g</strong>: kcal, proteínas (P), carboidratos (C) e gorduras (G).</li>
+            <li>Cole abaixo. Ex.: pão francês ≈ 300 kcal · P 8 g · C 59 g · G 3 g.</li>
+          </ol>
         </div>
         <form onsubmit="saveCustomFood(event)">
           <div class="form-group">
@@ -651,7 +682,8 @@
 
   <script>
     const STORAGE_KEY = 'nutri_state';
-    const DEFAULT_PROFILE = { sex: 'male', age: 35, weight: 75, height: 175, activity: 1.375, goalAdjustment: -400 };
+    const ACTIVITY_VALUES = [1.2, 1.375, 1.55, 1.725];
+    const GOAL_VALUES = [-400, 0, 350];
 
     const baseTacoDB = [
       { name: 'Banana prata crua', cal: 98, p: 1.3, c: 26.0, g: 0.1, cat: 'frutas' },
@@ -745,7 +777,117 @@
       { name: 'Pão de forma branco', cal: 253, p: 7.5, c: 50.0, g: 2.9, cat: 'graos' },
       { name: 'Iogurte grego natural', cal: 97, p: 9.0, c: 3.8, g: 5.0, cat: 'laticinios' },
       { name: 'Presunto cozido', cal: 145, p: 17.4, c: 2.1, g: 7.4, cat: 'carnes' },
-      { name: 'Peito de peru fatiado', cal: 105, p: 18.0, c: 1.5, g: 2.5, cat: 'carnes' }
+      { name: 'Peito de peru fatiado', cal: 105, p: 18.0, c: 1.5, g: 2.5, cat: 'carnes' },
+      { name: 'Queijo parmesão ralado', cal: 453, p: 35.6, c: 3.7, g: 33.0, cat: 'laticinios' },
+      { name: 'Queijo gouda', cal: 356, p: 24.9, c: 2.2, g: 27.4, cat: 'laticinios' },
+      { name: 'Queijo provolone', cal: 351, p: 25.6, c: 2.1, g: 26.6, cat: 'laticinios' },
+      { name: 'Queijo cheddar', cal: 403, p: 24.9, c: 1.3, g: 33.1, cat: 'laticinios' },
+      { name: 'Ricota fresca', cal: 140, p: 12.6, c: 3.0, g: 8.6, cat: 'laticinios' },
+      { name: 'Cream cheese / queijo cremoso', cal: 342, p: 5.9, c: 4.1, g: 34.2, cat: 'laticinios' },
+      { name: 'Queijo minas padrão', cal: 321, p: 21.2, c: 2.0, g: 24.6, cat: 'laticinios' },
+      { name: 'Queijo coalho', cal: 327, p: 27.5, c: 1.5, g: 23.4, cat: 'laticinios' },
+      { name: 'Queijo tipo catupiry', cal: 280, p: 8.0, c: 3.5, g: 26.0, cat: 'laticinios' },
+      { name: 'Mortadela', cal: 269, p: 12.0, c: 2.5, g: 24.0, cat: 'carnes' },
+      { name: 'Salame', cal: 398, p: 24.6, c: 1.9, g: 32.2, cat: 'carnes' },
+      { name: 'Copa fatiada', cal: 370, p: 22.0, c: 0.8, g: 31.0, cat: 'carnes' },
+      { name: 'Bacon frito', cal: 541, p: 36.8, c: 1.4, g: 43.3, cat: 'carnes' },
+      { name: 'Linguiça calabresa grelhada', cal: 325, p: 18.2, c: 1.8, g: 27.4, cat: 'carnes' },
+      { name: 'Salsicha tipo hot dog', cal: 247, p: 13.1, c: 2.7, g: 20.4, cat: 'carnes' },
+      { name: 'Blanquet de peru', cal: 102, p: 17.8, c: 1.8, g: 2.4, cat: 'carnes' },
+      { name: 'Pão sírio / pita', cal: 275, p: 9.1, c: 55.7, g: 1.2, cat: 'graos' },
+      { name: 'Pão de hambúrguer', cal: 280, p: 8.5, c: 50.0, g: 5.0, cat: 'graos' },
+      { name: 'Bisnaguinha', cal: 300, p: 8.0, c: 56.0, g: 5.0, cat: 'graos' },
+      { name: 'Pão de milho', cal: 266, p: 6.5, c: 52.0, g: 3.5, cat: 'graos' },
+      { name: 'Torrada', cal: 377, p: 10.1, c: 72.0, g: 4.5, cat: 'graos' },
+      { name: 'Pão australiano', cal: 270, p: 8.0, c: 48.0, g: 5.5, cat: 'graos' },
+      { name: 'Bolo de chocolate', cal: 389, p: 5.8, c: 54.8, g: 16.2, cat: 'lanches' },
+      { name: 'Bolo de cenoura com cobertura', cal: 370, p: 4.5, c: 52.0, g: 16.0, cat: 'lanches' },
+      { name: 'Bolo simples de baunilha', cal: 320, p: 4.5, c: 50.0, g: 12.0, cat: 'lanches' },
+      { name: 'Bolo de fubá', cal: 330, p: 5.0, c: 52.0, g: 12.0, cat: 'lanches' },
+      { name: 'Bolo de milho', cal: 280, p: 5.0, c: 45.0, g: 9.0, cat: 'lanches' },
+      { name: 'Pão de mel', cal: 380, p: 5.5, c: 62.0, g: 12.0, cat: 'lanches' },
+      { name: 'Brigadeiro', cal: 410, p: 5.0, c: 62.0, g: 16.0, cat: 'lanches' },
+      { name: 'Beijinho', cal: 400, p: 4.0, c: 60.0, g: 16.0, cat: 'lanches' },
+      { name: 'Pudim de leite', cal: 170, p: 5.0, c: 28.0, g: 4.5, cat: 'lanches' },
+      { name: 'Açaí na tigela (médio)', cal: 130, p: 1.2, c: 20.0, g: 5.0, cat: 'lanches' },
+      { name: 'Açaí polpa sem açúcar', cal: 58, p: 0.8, c: 6.2, g: 3.9, cat: 'frutas' },
+      { name: 'Quindim', cal: 305, p: 5.0, c: 40.0, g: 14.0, cat: 'lanches' },
+      { name: 'Doce de leite', cal: 315, p: 6.0, c: 55.0, g: 8.0, cat: 'lanches' },
+      { name: 'Goiabada', cal: 286, p: 0.4, c: 74.0, g: 0.1, cat: 'lanches' },
+      { name: 'Paçoca de amendoim', cal: 480, p: 12.0, c: 50.0, g: 26.0, cat: 'lanches' },
+      { name: 'Pé de moleque', cal: 450, p: 8.0, c: 60.0, g: 20.0, cat: 'lanches' },
+      { name: 'Farofa de mandioca', cal: 406, p: 1.6, c: 80.0, g: 9.1, cat: 'graos' },
+      { name: 'Feijoada', cal: 155, p: 9.0, c: 12.0, g: 7.5, cat: 'carnes' },
+      { name: 'Strogonoff de frango', cal: 165, p: 12.0, c: 6.0, g: 10.0, cat: 'carnes' },
+      { name: 'Strogonoff de carne', cal: 170, p: 13.0, c: 5.0, g: 11.0, cat: 'carnes' },
+      { name: 'Bife acebolado', cal: 210, p: 26.0, c: 3.0, g: 10.0, cat: 'carnes' },
+      { name: 'Ovo mexido', cal: 167, p: 11.0, c: 1.5, g: 13.0, cat: 'carnes' },
+      { name: 'Omelete simples', cal: 154, p: 11.0, c: 1.0, g: 12.0, cat: 'carnes' },
+      { name: 'Banana com aveia', cal: 120, p: 3.0, c: 24.0, g: 2.0, cat: 'graos' },
+      { name: 'Café com leite', cal: 42, p: 2.0, c: 4.0, g: 1.8, cat: 'laticinios' },
+      { name: 'Suco de laranja natural', cal: 45, p: 0.7, c: 10.4, g: 0.1, cat: 'frutas' },
+      { name: 'Refrigerante cola', cal: 42, p: 0.0, c: 10.5, g: 0.0, cat: 'lanches' },
+      { name: 'Refrigerante guaraná', cal: 41, p: 0.0, c: 10.2, g: 0.0, cat: 'lanches' },
+      { name: 'Cerveja pilsen', cal: 43, p: 0.4, c: 3.3, g: 0.0, cat: 'lanches' },
+      { name: 'Suco de uva integral', cal: 58, p: 0.4, c: 14.0, g: 0.1, cat: 'frutas' },
+      { name: 'Vitamina de banana com leite', cal: 85, p: 3.0, c: 14.0, g: 2.0, cat: 'laticinios' },
+      { name: 'Goiaba vermelha', cal: 54, p: 1.1, c: 13.0, g: 0.5, cat: 'frutas' },
+      { name: 'Kiwi', cal: 51, p: 1.1, c: 11.7, g: 0.5, cat: 'frutas' },
+      { name: 'Melão', cal: 29, p: 0.7, c: 7.0, g: 0.1, cat: 'frutas' },
+      { name: 'Maracujá', cal: 68, p: 2.0, c: 12.3, g: 2.1, cat: 'frutas' },
+      { name: 'Caju', cal: 43, p: 1.0, c: 10.3, g: 0.3, cat: 'frutas' },
+      { name: 'Acerola', cal: 33, p: 0.9, c: 8.0, g: 0.2, cat: 'frutas' },
+      { name: 'Tangerina / mexerica', cal: 38, p: 0.8, c: 9.0, g: 0.1, cat: 'frutas' },
+      { name: 'Caqui', cal: 71, p: 0.4, c: 19.0, g: 0.1, cat: 'frutas' },
+      { name: 'Coco fresco', cal: 354, p: 3.7, c: 15.2, g: 33.5, cat: 'frutas' },
+      { name: 'Água de coco', cal: 22, p: 0.7, c: 5.3, g: 0.0, cat: 'frutas' },
+      { name: 'Iogurte de morango', cal: 89, p: 3.0, c: 14.0, g: 2.3, cat: 'laticinios' },
+      { name: 'Iogurte proteico', cal: 70, p: 10.0, c: 5.0, g: 0.8, cat: 'laticinios' },
+      { name: 'Leite semidesnatado', cal: 47, p: 3.1, c: 4.9, g: 1.6, cat: 'laticinios' },
+      { name: 'Bebida láctea de chocolate', cal: 78, p: 2.5, c: 12.0, g: 2.2, cat: 'laticinios' },
+      { name: 'Kefir', cal: 55, p: 3.3, c: 4.5, g: 2.5, cat: 'laticinios' },
+      { name: 'Leite de soja', cal: 39, p: 2.9, c: 3.0, g: 1.8, cat: 'laticinios' },
+      { name: 'Chia', cal: 486, p: 16.5, c: 42.1, g: 30.7, cat: 'graos' },
+      { name: 'Linhaça dourada', cal: 495, p: 14.1, c: 43.3, g: 32.3, cat: 'graos' },
+      { name: 'Milho verde cozido', cal: 98, p: 3.2, c: 17.1, g: 2.0, cat: 'legumes' },
+      { name: 'Ervilha cozida', cal: 74, p: 5.0, c: 13.0, g: 0.4, cat: 'legumes' },
+      { name: 'Milho em conserva', cal: 80, p: 2.5, c: 15.0, g: 1.2, cat: 'legumes' },
+      { name: 'Quinoa cozida', cal: 120, p: 4.4, c: 21.3, g: 1.9, cat: 'graos' },
+      { name: 'Farelo de aveia', cal: 246, p: 17.0, c: 66.0, g: 7.0, cat: 'graos' },
+      { name: 'Sanduíche de atum', cal: 200, p: 12.0, c: 18.0, g: 8.0, cat: 'lanches' },
+      { name: 'Empada de frango', cal: 300, p: 9.0, c: 28.0, g: 16.0, cat: 'lanches' },
+      { name: 'Empada de palmito', cal: 280, p: 6.0, c: 28.0, g: 16.0, cat: 'lanches' },
+      { name: 'Kibe frito', cal: 270, p: 12.0, c: 22.0, g: 14.0, cat: 'lanches' },
+      { name: 'Kibe assado', cal: 180, p: 12.0, c: 16.0, g: 7.0, cat: 'lanches' },
+      { name: 'Enroladinho de salsicha', cal: 310, p: 10.0, c: 28.0, g: 17.0, cat: 'lanches' },
+      { name: 'Enroladinho de presunto e queijo', cal: 320, p: 12.0, c: 26.0, g: 18.0, cat: 'lanches' },
+      { name: 'Esfiha de carne', cal: 240, p: 10.0, c: 28.0, g: 9.0, cat: 'lanches' },
+      { name: 'Esfiha de queijo', cal: 260, p: 11.0, c: 28.0, g: 11.0, cat: 'lanches' },
+      { name: 'Misto quente', cal: 250, p: 12.0, c: 24.0, g: 12.0, cat: 'lanches' },
+      { name: 'Sanduíche natural de frango', cal: 180, p: 12.0, c: 18.0, g: 6.0, cat: 'lanches' },
+      { name: 'Tapioca com queijo', cal: 220, p: 8.0, c: 28.0, g: 8.0, cat: 'graos' },
+      { name: 'Pamonha', cal: 175, p: 3.5, c: 30.0, g: 5.0, cat: 'graos' },
+      { name: 'Mingau de aveia', cal: 90, p: 3.5, c: 14.0, g: 2.0, cat: 'graos' },
+      { name: 'Vagem cozida', cal: 25, p: 1.8, c: 4.5, g: 0.2, cat: 'legumes' },
+      { name: 'Espinafre refogado', cal: 67, p: 2.5, c: 4.0, g: 4.5, cat: 'legumes' },
+      { name: 'Couve-flor cozida', cal: 19, p: 1.9, c: 3.9, g: 0.2, cat: 'legumes' },
+      { name: 'Berinjela refogada', cal: 45, p: 1.0, c: 6.0, g: 2.0, cat: 'legumes' },
+      { name: 'Chuchu cozido', cal: 20, p: 0.7, c: 4.1, g: 0.1, cat: 'legumes' },
+      { name: 'Rúcula', cal: 13, p: 1.8, c: 1.5, g: 0.2, cat: 'legumes' },
+      { name: 'Abóbora cozida', cal: 26, p: 1.0, c: 6.0, g: 0.1, cat: 'legumes' },
+      { name: 'Inhame cozido', cal: 97, p: 2.0, c: 23.0, g: 0.2, cat: 'legumes' },
+      { name: 'Frango desfiado', cal: 165, p: 31.0, c: 0.0, g: 3.6, cat: 'carnes' },
+      { name: 'Coxa de frango assada', cal: 215, p: 26.0, c: 0.0, g: 12.0, cat: 'carnes' },
+      { name: 'Carne de panela', cal: 200, p: 28.0, c: 0.0, g: 9.0, cat: 'carnes' },
+      { name: 'Hambúrguer bovino grelhado (sem pão)', cal: 250, p: 20.0, c: 1.0, g: 18.0, cat: 'carnes' },
+      { name: 'Sardinha em óleo drenada', cal: 208, p: 24.0, c: 0.0, g: 12.0, cat: 'carnes' },
+      { name: 'Frango à milanesa', cal: 250, p: 22.0, c: 10.0, g: 14.0, cat: 'carnes' },
+      { name: 'Baião de dois', cal: 145, p: 6.0, c: 20.0, g: 4.5, cat: 'graos' },
+      { name: 'Escondidinho de carne', cal: 165, p: 9.0, c: 14.0, g: 8.0, cat: 'carnes' },
+      { name: 'Maionese', cal: 723, p: 0.8, c: 2.0, g: 79.0, cat: 'lanches' },
+      { name: 'Ketchup', cal: 112, p: 1.0, c: 26.0, g: 0.2, cat: 'lanches' },
+      { name: 'Creme de leite', cal: 195, p: 2.0, c: 4.0, g: 20.0, cat: 'laticinios' },
+      { name: 'Leite condensado', cal: 330, p: 8.0, c: 56.0, g: 8.0, cat: 'laticinios' }
     ];
 
     const MEAL_LABELS = { cafe: 'Café', almoco: 'Almoço', jantar: 'Jantar', lanche: 'Lanche', outro: 'Outro' };
@@ -760,7 +902,6 @@
     let selectedDate = getTodayIso();
     let state = loadState();
 
-    if (!state.profile) state.profile = { ...DEFAULT_PROFILE };
     if (!Array.isArray(state.customFoods)) state.customFoods = [];
     if (!state.history || typeof state.history !== 'object') state.history = {};
 
@@ -777,13 +918,10 @@
       state.migratedToHistory = true;
     }
 
-    if (!state.calGoal) {
-      const goals = recalculateGoals(state.profile);
-      state.calGoal = goals.calGoal;
-      state.pGoal = goals.pGoal;
-      state.cGoal = goals.cGoal;
-      state.gGoal = goals.gGoal;
-      state.waterGoal = goals.waterGoal;
+    if (hasSavedProfile()) {
+      if (!state.calGoal) Object.assign(state, recalculateGoals(state.profile));
+    } else {
+      discardUnsavedProfileDefaults();
     }
 
     function mealPer100(meal) {
@@ -852,6 +990,36 @@
       }
     }
 
+    function isCompleteProfile(profile) {
+      if (!profile || typeof profile !== 'object') return false;
+      const age = Number(profile.age);
+      const weight = Number(profile.weight);
+      const height = Number(profile.height);
+      const activity = Number(profile.activity);
+      const goalAdjustment = Number(profile.goalAdjustment);
+      return (profile.sex === 'male' || profile.sex === 'female')
+        && Number.isFinite(age) && age >= 10 && age <= 100
+        && Number.isFinite(weight) && weight >= 30 && weight <= 250
+        && Number.isFinite(height) && height >= 100 && height <= 230
+        && ACTIVITY_VALUES.some((n) => Math.abs(activity - n) < 1e-9)
+        && GOAL_VALUES.some((n) => Math.abs(goalAdjustment - n) < 1e-9);
+    }
+
+    function hasSavedProfile() {
+      return state.profileSaved === true && isCompleteProfile(state.profile);
+    }
+
+    function discardUnsavedProfileDefaults() {
+      if (hasSavedProfile()) return;
+      delete state.profile;
+      delete state.calGoal;
+      delete state.pGoal;
+      delete state.cGoal;
+      delete state.gGoal;
+      delete state.waterGoal;
+      state.profileSaved = false;
+    }
+
     function isEmptyDay(rec) {
       return (!rec || !rec.meals || rec.meals.length === 0) && !(Number(rec && rec.waterMl) > 0);
     }
@@ -891,6 +1059,7 @@
 
     function persist() {
       pruneEmptyHistory();
+      discardUnsavedProfileDefaults();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
@@ -1044,49 +1213,64 @@
         g += Number(m.g) || 0;
       });
 
-      const remainingCal = state.calGoal - consumedCal;
-      const over = remainingCal < 0;
-      const pct = state.calGoal > 0 ? Math.min(100, (consumedCal / state.calGoal) * 100) : 0;
+      const profileReady = hasSavedProfile();
+      document.getElementById('goals-prompt').hidden = profileReady;
+      document.getElementById('goals-stats').hidden = !profileReady;
 
-      const remainingEl = document.getElementById('cal-remaining');
-      remainingEl.textContent = Math.round(Math.abs(remainingCal));
-      remainingEl.classList.toggle('over', over);
-      document.getElementById('cal-remaining-label').textContent = over ? 'Excedidas' : 'Restantes';
-      document.getElementById('cal-goal-label').textContent = state.calGoal + ' kcal';
-      document.getElementById('cal-consumed').textContent = Math.round(consumedCal) + ' kcal';
+      if (profileReady) {
+        const remainingCal = state.calGoal - consumedCal;
+        const over = remainingCal < 0;
+        const pct = state.calGoal > 0 ? Math.min(100, (consumedCal / state.calGoal) * 100) : 0;
 
-      const progress = document.getElementById('cal-progress');
-      progress.style.width = pct + '%';
-      progress.style.background = over ? 'var(--danger)' : 'var(--primary)';
+        const remainingEl = document.getElementById('cal-remaining');
+        remainingEl.textContent = Math.round(Math.abs(remainingCal));
+        remainingEl.classList.toggle('over', over);
+        document.getElementById('cal-remaining-label').textContent = over ? 'Excedidas' : 'Restantes';
+        document.getElementById('cal-goal-label').textContent = state.calGoal + ' kcal';
+        document.getElementById('cal-consumed').textContent = Math.round(consumedCal) + ' kcal';
 
-      document.getElementById('macro-p').textContent = `${Math.round(p)} / ${state.pGoal}g`;
-      document.getElementById('macro-c').textContent = `${Math.round(c)} / ${state.cGoal}g`;
-      document.getElementById('macro-g').textContent = `${Math.round(g)} / ${state.gGoal}g`;
-      document.getElementById('macro-p-bar').style.width = `${state.pGoal ? Math.min(100, (p / state.pGoal) * 100) : 0}%`;
-      document.getElementById('macro-c-bar').style.width = `${state.cGoal ? Math.min(100, (c / state.cGoal) * 100) : 0}%`;
-      document.getElementById('macro-g-bar').style.width = `${state.gGoal ? Math.min(100, (g / state.gGoal) * 100) : 0}%`;
+        const progress = document.getElementById('cal-progress');
+        progress.style.width = pct + '%';
+        progress.style.background = over ? 'var(--danger)' : 'var(--primary)';
+
+        document.getElementById('macro-p').textContent = `${Math.round(p)} / ${state.pGoal}g`;
+        document.getElementById('macro-c').textContent = `${Math.round(c)} / ${state.cGoal}g`;
+        document.getElementById('macro-g').textContent = `${Math.round(g)} / ${state.gGoal}g`;
+        document.getElementById('macro-p-bar').style.width = `${state.pGoal ? Math.min(100, (p / state.pGoal) * 100) : 0}%`;
+        document.getElementById('macro-c-bar').style.width = `${state.cGoal ? Math.min(100, (c / state.cGoal) * 100) : 0}%`;
+        document.getElementById('macro-g-bar').style.width = `${state.gGoal ? Math.min(100, (g / state.gGoal) * 100) : 0}%`;
+      }
 
       const curWater = Number(rec.waterMl) || 0;
-      const wGoal = Number(state.waterGoal) || 2600;
+      const wGoal = profileReady ? (Number(state.waterGoal) || 0) : 0;
       const waterPct = wGoal > 0 ? Math.min(100, (curWater / wGoal) * 100) : 0;
 
       document.getElementById('water-display').textContent = `${curWater} ml`;
-      document.getElementById('water-goal-text').textContent = `Meta: ${wGoal} ml (~${Math.round(wGoal / 250)} copos)`;
       document.getElementById('water-progress').style.width = `${waterPct}%`;
+      document.getElementById('water-sublabel').textContent = profileReady
+        ? 'Recomendação: 35 ml/kg de peso'
+        : 'A meta de água depende do seu peso no Perfil.';
 
       const statusEl = document.getElementById('water-status');
-      if (curWater === 0) {
-        statusEl.textContent = 'Nenhum consumo registrado';
+      if (!profileReady) {
+        document.getElementById('water-goal-text').textContent = 'Meta: complete o Perfil';
+        statusEl.textContent = curWater === 0 ? 'Nenhum consumo registrado' : 'Consumo registrado';
         statusEl.style.color = 'var(--muted)';
-      } else if (curWater < wGoal * 0.5) {
-        statusEl.textContent = 'Abaixo do recomendado';
-        statusEl.style.color = '#dc2626';
-      } else if (curWater < wGoal) {
-        statusEl.textContent = `Em progresso (${Math.round(waterPct)}%)`;
-        statusEl.style.color = '#d97706';
       } else {
-        statusEl.textContent = 'Meta alcançada';
-        statusEl.style.color = 'var(--primary)';
+        document.getElementById('water-goal-text').textContent = `Meta: ${wGoal} ml (~${Math.round(wGoal / 250)} copos)`;
+        if (curWater === 0) {
+          statusEl.textContent = 'Nenhum consumo registrado';
+          statusEl.style.color = 'var(--muted)';
+        } else if (curWater < wGoal * 0.5) {
+          statusEl.textContent = 'Abaixo do recomendado';
+          statusEl.style.color = '#dc2626';
+        } else if (curWater < wGoal) {
+          statusEl.textContent = `Em progresso (${Math.round(waterPct)}%)`;
+          statusEl.style.color = '#d97706';
+        } else {
+          statusEl.textContent = 'Meta alcançada';
+          statusEl.style.color = 'var(--primary)';
+        }
       }
 
       const count = meals.length;
@@ -1140,16 +1324,18 @@
         const total = (rec.meals || []).reduce((sum, m) => sum + (Number(m.cal) || 0), 0);
         cal += total;
         water += Number(rec.waterMl) || 0;
-        if (total <= state.calGoal) onTarget += 1;
+        if (hasSavedProfile() && total <= state.calGoal) onTarget += 1;
       }
       if (!days) {
         box.hidden = true;
         return;
       }
       box.hidden = false;
+      const metaLine = hasSavedProfile()
+        ? `<br>Dentro da meta: ${onTarget} de ${days}`
+        : '<br>Defina o Perfil para comparar com a meta';
       box.innerHTML = `<strong>Últimos 7 dias</strong> (${days} ${days === 1 ? 'dia' : 'dias'} com registro)<br>
-        Média: ${Math.round(cal / days)} kcal · ${Math.round(water / days)} ml<br>
-        Dentro da meta: ${onTarget} de ${days}`;
+        Média: ${Math.round(cal / days)} kcal · ${Math.round(water / days)} ml${metaLine}`;
     }
 
     function openHistoryModal() {
@@ -1172,17 +1358,21 @@
             c += Number(m.c) || 0;
             g += Number(m.g) || 0;
           });
-          const calPct = state.calGoal > 0 ? Math.round((totalCal / state.calGoal) * 100) : 0;
           const water = Number(rec.waterMl) || 0;
           const isSelected = (dt === selectedDate);
-          const over = totalCal > state.calGoal;
+          const profileReady = hasSavedProfile();
+          const calPct = profileReady && state.calGoal > 0 ? Math.round((totalCal / state.calGoal) * 100) : 0;
+          const over = profileReady && totalCal > state.calGoal;
+          const calLabel = profileReady
+            ? `${Math.round(totalCal)} / ${state.calGoal} kcal (${calPct}%)`
+            : `${Math.round(totalCal)} kcal`;
 
           return `
             <button type="button" class="history-card" data-date="${escapeHtml(dt)}" style="${isSelected ? 'border-color: var(--primary); background: #f0fdf4;' : ''}">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 8px;">
                 <strong>${escapeHtml(formatBrDate(dt))}${dt === getTodayIso() ? ' (Hoje)' : ''}</strong>
                 <span style="font-weight: 700; color: ${over ? '#dc2626' : 'var(--primary)'};">
-                  ${Math.round(totalCal)} / ${state.calGoal} kcal (${calPct}%)
+                  ${calLabel}
                 </span>
               </div>
               <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); gap: 8px;">
@@ -1236,17 +1426,22 @@
       const container = document.getElementById('foods-container');
 
       if (list.length === 0) {
-        const tbcaQ = encodeURIComponent(document.getElementById('search-input').value.trim());
+        const typed = document.getElementById('search-input').value.trim();
+        const tbcaQ = encodeURIComponent(typed);
         container.innerHTML = `
-          <div class="empty-hint" style="padding: 16px 8px;">
-            Nenhum alimento encontrado na lista rápida.<br>
-            <div style="margin-top: 10px;">
-              <a href="https://www.tbca.net.br/base-dados/composicao_alimentos.php${tbcaQ ? '?q=' + tbcaQ : ''}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: bold; text-decoration: underline;">
-                Pesquisar na TBCA (USP)
-              </a>
-            </div>
+          <div class="empty-hint" style="padding: 12px 4px; text-align: left;">
+            <p style="text-align: center; margin-bottom: 10px;">Nenhum alimento encontrado na lista rápida.</p>
+            <ol style="margin: 0 0 12px 18px; color: var(--text); font-size: 0.82rem; line-height: 1.45;">
+              <li>Busque na <a href="https://www.tbca.net.br/base-dados/composicao_alimentos.php${tbcaQ ? '?q=' + tbcaQ : ''}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: 700;">TBCA (USP)</a>.</li>
+              <li>Copie kcal, P, C e G <strong>por 100 g</strong>.</li>
+              <li>Cadastre abaixo e cole os valores.</li>
+            </ol>
+            <button type="button" class="btn-submit" id="btn-create-from-search">Não achei — cadastrar alimento</button>
           </div>
         `;
+        document.getElementById('btn-create-from-search').addEventListener('click', () => {
+          openCustomFoodModal(null, typed);
+        });
         return;
       }
 
@@ -1301,11 +1496,11 @@
     }
 
     function fillCustomFoodForm(food) {
-      document.getElementById('cf-name').value = food ? food.name : '';
-      document.getElementById('cf-cal').value = food ? food.cal : '';
-      document.getElementById('cf-p').value = food ? food.p : '';
-      document.getElementById('cf-c').value = food ? food.c : '';
-      document.getElementById('cf-g').value = food ? food.g : '';
+      document.getElementById('cf-name').value = food && food.name ? food.name : '';
+      document.getElementById('cf-cal').value = food && Number.isFinite(Number(food.cal)) ? food.cal : '';
+      document.getElementById('cf-p').value = food && Number.isFinite(Number(food.p)) ? food.p : '';
+      document.getElementById('cf-c').value = food && Number.isFinite(Number(food.c)) ? food.c : '';
+      document.getElementById('cf-g').value = food && Number.isFinite(Number(food.g)) ? food.g : '';
       document.getElementById('cf-cat').value = food ? (food.cat || 'custom') : 'custom';
     }
 
@@ -1387,8 +1582,8 @@
     function updateProfilePreview() {
       const profile = readProfileForm();
       const box = document.getElementById('profile-preview');
-      if (![profile.weight, profile.height, profile.age, profile.activity].every(Number.isFinite)) {
-        box.textContent = 'IMC e metas aparecem ao preencher peso e altura.';
+      if (!isCompleteProfile(profile)) {
+        box.textContent = 'IMC e metas aparecem ao preencher o perfil.';
         return;
       }
       const heightM = profile.height / 100;
@@ -1401,6 +1596,10 @@
     function saveProfile(e) {
       e.preventDefault();
       const profile = readProfileForm();
+      if (!isCompleteProfile(profile)) {
+        showToast('Preencha todos os campos do perfil.');
+        return;
+      }
       const goals = recalculateGoals(profile);
       state.profile = profile;
       state.profileSaved = true;
@@ -1429,9 +1628,14 @@
           if (!data || typeof data !== 'object') throw new Error('invalid');
           const previous = JSON.parse(JSON.stringify(state));
           state = data;
-          if (!state.profile) state.profile = { ...DEFAULT_PROFILE };
           if (!Array.isArray(state.customFoods)) state.customFoods = [];
           if (!state.history || typeof state.history !== 'object') state.history = {};
+          if (isCompleteProfile(state.profile)) {
+            state.profileSaved = true;
+            if (!state.calGoal) Object.assign(state, recalculateGoals(state.profile));
+          } else {
+            discardUnsavedProfileDefaults();
+          }
           persist();
           render();
           closeProfileModal();
@@ -1469,15 +1673,29 @@
       }
     }
 
+    function fillProfileForm(profile) {
+      document.getElementById('p-sex').value = profile.sex;
+      document.getElementById('p-age').value = profile.age;
+      document.getElementById('p-weight').value = profile.weight;
+      document.getElementById('p-height').value = profile.height;
+      document.getElementById('p-activity').value = String(profile.activity);
+      document.getElementById('p-goal').value = String(profile.goalAdjustment);
+    }
+
+    function clearProfileForm() {
+      document.getElementById('p-sex').value = '';
+      document.getElementById('p-age').value = '';
+      document.getElementById('p-weight').value = '';
+      document.getElementById('p-height').value = '';
+      document.getElementById('p-activity').value = '';
+      document.getElementById('p-goal').value = '';
+    }
+
     function openProfileModal(isOnboarding) {
-      const p = state.profile || DEFAULT_PROFILE;
-      document.getElementById('profile-onboarding').style.display = isOnboarding ? 'block' : 'none';
-      document.getElementById('p-sex').value = p.sex;
-      document.getElementById('p-age').value = p.age;
-      document.getElementById('p-weight').value = p.weight;
-      document.getElementById('p-height').value = p.height;
-      document.getElementById('p-activity').value = String(p.activity);
-      document.getElementById('p-goal').value = String(p.goalAdjustment);
+      const saved = hasSavedProfile();
+      document.getElementById('profile-onboarding').style.display = (isOnboarding || !saved) ? 'block' : 'none';
+      if (saved) fillProfileForm(state.profile);
+      else clearProfileForm();
       updateProfilePreview();
       openModal('profile-modal');
     }
@@ -1548,12 +1766,12 @@
       document.getElementById('search-input').focus();
     }
 
-    function openCustomFoodModal(index) {
+    function openCustomFoodModal(index, presetName) {
       editingCustomIndex = Number.isInteger(index) ? index : null;
       const food = editingCustomIndex != null ? (state.customFoods || [])[editingCustomIndex] : null;
-      document.getElementById('custom-title').textContent = food ? 'Editar alimento (por 100g)' : 'Novo alimento (por 100g)';
+      document.getElementById('custom-title').textContent = food ? 'Editar alimento (por 100g)' : 'Cadastrar alimento (por 100g)';
       document.getElementById('cf-submit').textContent = food ? 'Atualizar alimento' : 'Salvar alimento na minha tabela';
-      fillCustomFoodForm(food || null);
+      fillCustomFoodForm(food || (presetName ? { name: presetName } : null));
       openModal('custom-modal');
     }
 
@@ -1635,7 +1853,7 @@
 
     document.getElementById('meal-type').value = defaultMealType();
     render();
-    if (!state.profileSaved) {
+    if (!hasSavedProfile()) {
       setTimeout(() => openProfileModal(true), 250);
     }
   </script>

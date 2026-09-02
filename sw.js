@@ -1,4 +1,4 @@
-const CACHE = 'nutripulse-v3';
+const CACHE = 'nutripulse-v4';
 const PRECACHE = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
