@@ -9,9 +9,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="NutriPulse">
   <title>NutriPulse - Diário e Nutrição</title>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <style>
     :root {
       --primary: #10b981;
@@ -612,7 +612,7 @@
               <input type="number" step="0.1" min="0" id="cf-g" required>
             </div>
           </div>
-          <button type="submit" class="btn-submit">Salvar alimento na minha tabela</button>
+          <button type="submit" class="btn-submit" id="cf-submit">Salvar alimento na minha tabela</button>
         </form>
       </div>
     </div>
@@ -621,11 +621,14 @@
   <div class="modal" id="edit-meal-modal" role="dialog" aria-labelledby="edit-meal-title" aria-modal="true">
     <div class="modal-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 id="edit-meal-title" style="font-size: 1.1rem;">Editar porção</h3>
+        <h3 id="edit-meal-title" style="font-size: 1.1rem;">Editar alimento</h3>
         <button type="button" class="modal-close" onclick="closeEditMealModal()" aria-label="Fechar">✕</button>
       </div>
       <form onsubmit="saveEditedMeal(event)">
-        <p id="edit-meal-name" style="font-weight: 700; margin-bottom: 12px;"></p>
+        <div class="form-group">
+          <label for="edit-meal-name">Nome</label>
+          <input type="text" id="edit-meal-name" required maxlength="80">
+        </div>
         <div class="form-group">
           <label for="edit-meal-type">Refeição</label>
           <select id="edit-meal-type">
@@ -752,6 +755,7 @@
     let toastTimer = null;
     let undoAction = null;
     let editingMealIndex = null;
+    let editingCustomIndex = null;
     let lastFocus = null;
     let selectedDate = getTodayIso();
     let state = loadState();
@@ -794,11 +798,11 @@
       };
     }
 
-    function scaleMeal(meal, grams, mealType) {
+    function scaleMeal(meal, grams, mealType, name) {
       const base = mealPer100(meal);
       const factor = grams / 100;
       return {
-        name: meal.name,
+        name: (name && name.trim()) ? name.trim() : meal.name,
         grams,
         cal: base.cal * factor,
         p: base.p * factor,
@@ -966,6 +970,8 @@
     function removeMeal(index) {
       const rec = getDayRecord(selectedDate);
       if (!rec.meals || !rec.meals[index]) return;
+      const meal = rec.meals[index];
+      if (!confirm(`Remover "${meal.name}"?`)) return;
       const removed = rec.meals.splice(index, 1)[0];
       if (state.history[selectedDate]) state.history[selectedDate] = rec;
       saveState();
@@ -1255,7 +1261,10 @@
             </div>
             <span style="color: var(--muted); font-size: 0.78rem;">${grams}g: P ${(f.p * factor).toFixed(1)}g • C ${(f.c * factor).toFixed(1)}g • G ${(f.g * factor).toFixed(1)}g</span>
           </button>
-          ${customIdx >= 0 ? `<button type="button" class="delete-btn" data-custom-del="${customIdx}" aria-label="Excluir alimento">✕</button>` : ''}
+          ${customIdx >= 0 ? `
+            <button type="button" class="edit-btn" data-custom-edit="${customIdx}">editar</button>
+            <button type="button" class="delete-btn" data-custom-del="${customIdx}" aria-label="Excluir alimento">✕</button>
+          ` : ''}
         </div>
       `;
       }).join('');
@@ -1269,11 +1278,19 @@
           deleteCustomFood(Number(btn.dataset.customDel));
         });
       });
+      container.querySelectorAll('[data-custom-edit]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCustomFoodModal(Number(btn.dataset.customEdit));
+        });
+      });
     }
 
     function deleteCustomFood(index) {
-      const removed = (state.customFoods || []).splice(index, 1)[0];
-      if (!removed) return;
+      const food = (state.customFoods || [])[index];
+      if (!food) return;
+      if (!confirm(`Excluir "${food.name}" da sua tabela?`)) return;
+      const removed = state.customFoods.splice(index, 1)[0];
       persist();
       filterFoods();
       showToast('Alimento excluído da tabela', () => {
@@ -1281,6 +1298,15 @@
         persist();
         filterFoods();
       });
+    }
+
+    function fillCustomFoodForm(food) {
+      document.getElementById('cf-name').value = food ? food.name : '';
+      document.getElementById('cf-cal').value = food ? food.cal : '';
+      document.getElementById('cf-p').value = food ? food.p : '';
+      document.getElementById('cf-c').value = food ? food.c : '';
+      document.getElementById('cf-g').value = food ? food.g : '';
+      document.getElementById('cf-cat').value = food ? (food.cat || 'custom') : 'custom';
     }
 
     function saveCustomFood(e) {
@@ -1301,14 +1327,24 @@
       }
 
       if (!state.customFoods) state.customFoods = [];
+      if (editingCustomIndex != null && state.customFoods[editingCustomIndex]) {
+        const previous = state.customFoods[editingCustomIndex];
+        state.customFoods[editingCustomIndex] = newFood;
+        persist();
+        closeCustomFoodModal();
+        filterFoods();
+        showToast('Alimento atualizado', () => {
+          state.customFoods[editingCustomIndex] = previous;
+          persist();
+          filterFoods();
+        });
+        return;
+      }
+
       state.customFoods.push(newFood);
       persist();
       closeCustomFoodModal();
-      document.getElementById('cf-name').value = '';
-      document.getElementById('cf-cal').value = '';
-      document.getElementById('cf-p').value = '';
-      document.getElementById('cf-c').value = '';
-      document.getElementById('cf-g').value = '';
+      fillCustomFoodForm(null);
       filterFoods();
       showToast('Alimento salvo na tabela');
     }
@@ -1451,7 +1487,7 @@
       const meal = rec.meals && rec.meals[index];
       if (!meal) return;
       editingMealIndex = index;
-      document.getElementById('edit-meal-name').textContent = meal.name;
+      document.getElementById('edit-meal-name').value = meal.name;
       document.getElementById('edit-grams').value = Math.round(meal.grams);
       document.getElementById('edit-meal-type').value = meal.mealType || 'outro';
       updateEditMealPreview();
@@ -1480,11 +1516,16 @@
         showToast('Informe uma porção válida.');
         return;
       }
+      const name = document.getElementById('edit-meal-name').value.trim();
+      if (!name) {
+        showToast('Informe o nome do alimento.');
+        return;
+      }
       const previous = JSON.parse(JSON.stringify(meal));
-      rec.meals[editingMealIndex] = scaleMeal(meal, grams, document.getElementById('edit-meal-type').value);
+      rec.meals[editingMealIndex] = scaleMeal(meal, grams, document.getElementById('edit-meal-type').value, name);
       closeEditMealModal();
       saveState();
-      showToast('Porção atualizada', () => {
+      showToast('Alimento atualizado', () => {
         const day = ensureDayRecord(selectedDate);
         day.meals[editingMealIndex] = previous;
         saveState();
@@ -1496,7 +1537,10 @@
     function closeProfileModal() { closeModal('profile-modal'); }
     function closeHistoryModal() { closeModal('history-modal'); }
     function closeFoodModal() { closeModal('food-modal'); }
-    function closeCustomFoodModal() { closeModal('custom-modal'); }
+    function closeCustomFoodModal() {
+      editingCustomIndex = null;
+      closeModal('custom-modal');
+    }
 
     function openFoodModal() {
       openModal('food-modal');
@@ -1504,7 +1548,12 @@
       document.getElementById('search-input').focus();
     }
 
-    function openCustomFoodModal() {
+    function openCustomFoodModal(index) {
+      editingCustomIndex = Number.isInteger(index) ? index : null;
+      const food = editingCustomIndex != null ? (state.customFoods || [])[editingCustomIndex] : null;
+      document.getElementById('custom-title').textContent = food ? 'Editar alimento (por 100g)' : 'Novo alimento (por 100g)';
+      document.getElementById('cf-submit').textContent = food ? 'Atualizar alimento' : 'Salvar alimento na minha tabela';
+      fillCustomFoodForm(food || null);
       openModal('custom-modal');
     }
 
