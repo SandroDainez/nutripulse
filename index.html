@@ -146,6 +146,23 @@
       cursor: pointer;
     }
     .water-guidance { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+    .water-formula {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+    .water-extra {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .water-extra input { margin-top: 3px; accent-color: var(--blue); flex-shrink: 0; }
+    .water-extra-hint { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
 
     #toast {
       display: none;
@@ -416,7 +433,7 @@
       <div class="water-header">
         <div>
           <strong>Hidratação diária</strong>
-          <div class="water-guidance" id="water-sublabel">A meta de água depende do seu peso no Perfil.</div>
+          <div class="water-guidance" id="water-sublabel">A meta de água depende do peso, idade e atividade no Perfil.</div>
         </div>
         <div class="water-ml" id="water-display">0 ml</div>
       </div>
@@ -439,6 +456,14 @@
         <input type="number" id="water-custom-input" min="1" max="5000" step="50" placeholder="Outro (ml)" style="flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;">
         <button type="button" class="water-btn-quick" style="flex: 0 0 auto; padding: 8px 14px;" onclick="addCustomWater()">Adicionar</button>
       </div>
+      <label class="water-extra" id="water-hot-wrap" hidden>
+        <input type="checkbox" id="water-hot-day" onchange="toggleHotDay(this.checked)">
+        <span>
+          Dia quente / muito suor
+          <span class="water-extra-hint">Soma cerca de 450 ml — aproximação pelo suor extra.</span>
+        </span>
+      </label>
+      <p class="water-formula" id="water-formula"></p>
     </div>
 
     <div class="card">
@@ -481,6 +506,9 @@
       <div class="modal-scrollable-body">
         <p id="profile-onboarding" class="empty-hint" style="display: none; padding: 0 0 12px;">Preencha seu perfil para calcular as metas de calorias, macros e água.</p>
         <div class="bmi-box" id="profile-preview">IMC e metas aparecem ao preencher o perfil.</div>
+        <p class="water-formula" id="profile-water-note" style="margin-top: 0; margin-bottom: 12px;">
+          Água: peso (kg) × ml/kg da idade. Até 17 anos: 40 · 18–54: 35 · 55–65: 30 · 66+: 25. Ex.: 70 kg × 35 = 2450 ml. A atividade soma um extra. Referência geral, não substitui orientação profissional.
+        </p>
         <form onsubmit="saveProfile(event)">
           <div class="form-group">
             <label for="p-sex">Sexo biológico</label>
@@ -684,6 +712,10 @@
     const STORAGE_KEY = 'nutri_state';
     const ACTIVITY_VALUES = [1.2, 1.375, 1.55, 1.725];
     const GOAL_VALUES = [-400, 0, 350];
+    const WATER_ACTIVITY_BUMPS = [0, 300, 500, 800];
+    const WATER_HEAT_ML = 450;
+    const WATER_EXTRAS_CAP = 1500;
+    const WATER_GOAL_CAP = 5500;
 
     const baseTacoDB = [
       { name: 'Banana prata crua', cal: 98, p: 1.3, c: 26.0, g: 0.1, cat: 'frutas' },
@@ -919,7 +951,9 @@
     }
 
     if (hasSavedProfile()) {
-      if (!state.calGoal) Object.assign(state, recalculateGoals(state.profile));
+      const prevWater = state.waterGoal;
+      Object.assign(state, recalculateGoals(state.profile));
+      if (state.waterGoal !== prevWater) persist();
     } else {
       discardUnsavedProfileDefaults();
     }
@@ -1021,7 +1055,7 @@
     }
 
     function isEmptyDay(rec) {
-      return (!rec || !rec.meals || rec.meals.length === 0) && !(Number(rec && rec.waterMl) > 0);
+      return (!rec || !rec.meals || rec.meals.length === 0) && !(Number(rec && rec.waterMl) > 0) && !rec.hotDay;
     }
 
     function getDayRecord(date) {
@@ -1112,6 +1146,13 @@
       }
       addWater(qty);
       document.getElementById('water-custom-input').value = '';
+    }
+
+    function toggleHotDay(checked) {
+      const rec = ensureDayRecord(selectedDate);
+      rec.hotDay = !!checked;
+      if (!rec.hotDay) delete rec.hotDay;
+      saveState();
     }
 
     function addFood(food, grams) {
@@ -1242,14 +1283,24 @@
       }
 
       const curWater = Number(rec.waterMl) || 0;
-      const wGoal = profileReady ? (Number(state.waterGoal) || 0) : 0;
+      const hotDay = !!(rec && rec.hotDay);
+      const wGoal = profileReady ? computeWaterGoal(state.profile, hotDay) : 0;
       const waterPct = wGoal > 0 ? Math.min(100, (curWater / wGoal) * 100) : 0;
+      const mlPerKg = profileReady ? waterMlPerKg(state.profile.age) : 35;
 
       document.getElementById('water-display').textContent = `${curWater} ml`;
       document.getElementById('water-progress').style.width = `${waterPct}%`;
       document.getElementById('water-sublabel').textContent = profileReady
-        ? 'Recomendação: 35 ml/kg de peso'
-        : 'A meta de água depende do seu peso no Perfil.';
+        ? `Peso × ${mlPerKg} ml/kg + atividade`
+        : 'A meta de água depende do peso, idade e atividade no Perfil.';
+      document.getElementById('water-formula').textContent = profileReady
+        ? waterFormulaText(state.profile, hotDay)
+        : 'Como calcular: peso (kg) × ml/kg da idade = ml/dia. Ex.: 70 kg × 35 = 2450 ml. Complete o Perfil para ver a sua meta. Referência geral, não substitui orientação profissional.';
+
+      const hotWrap = document.getElementById('water-hot-wrap');
+      const hotInput = document.getElementById('water-hot-day');
+      hotWrap.hidden = !profileReady;
+      hotInput.checked = hotDay;
 
       const statusEl = document.getElementById('water-status');
       if (!profileReady) {
@@ -1544,6 +1595,56 @@
       showToast('Alimento salvo na tabela');
     }
 
+    function waterMlPerKg(age) {
+      const a = Number(age);
+      if (!Number.isFinite(a)) return 35;
+      if (a <= 17) return 40;
+      if (a < 55) return 35;
+      if (a <= 65) return 30;
+      return 25;
+    }
+
+    function waterActivityBump(activity) {
+      const idx = ACTIVITY_VALUES.findIndex((n) => Math.abs(Number(activity) - n) < 1e-9);
+      return idx >= 0 ? WATER_ACTIVITY_BUMPS[idx] : 0;
+    }
+
+    function computeWaterGoal(profile, hotDay) {
+      const weight = Number(profile.weight);
+      const mlPerKg = waterMlPerKg(profile.age);
+      const base = Number.isFinite(weight) ? weight * mlPerKg : 0;
+      const extras = Math.min(
+        WATER_EXTRAS_CAP,
+        waterActivityBump(profile.activity) + (hotDay ? WATER_HEAT_ML : 0)
+      );
+      return Math.max(0, Math.min(WATER_GOAL_CAP, Math.round(base + extras)));
+    }
+
+    function waterAgeBandLabel(age) {
+      const ml = waterMlPerKg(age);
+      if (ml === 40) return 'até 17 anos';
+      if (ml === 35) return '18–54 anos';
+      if (ml === 30) return '55–65 anos';
+      return '66+ anos';
+    }
+
+    function waterFormulaText(profile, hotDay) {
+      const mlPerKg = waterMlPerKg(profile.age);
+      const weight = Number(profile.weight);
+      const base = Math.round(weight * mlPerKg);
+      const act = waterActivityBump(profile.activity);
+      const heat = hotDay ? WATER_HEAT_ML : 0;
+      const total = computeWaterGoal(profile, hotDay);
+      const bits = [`${formatNumber(weight)} kg × ${mlPerKg} ml (${waterAgeBandLabel(profile.age)}) = ${base} ml`];
+      if (act) bits.push(`+ ${act} ml de atividade`);
+      if (heat) bits.push(`+ ${heat} ml (dia quente)`);
+      return `Sua conta: ${bits.join(' ')} → ${total} ml. Faixas: até 17 → 40; 18–54 → 35; 55–65 → 30; 66+ → 25. Ex.: 70 kg × 35 = 2450 ml. Referência geral, não substitui orientação profissional.`;
+    }
+
+    function formatNumber(n) {
+      return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
+    }
+
     function recalculateGoals(profile) {
       let bmr = (10 * profile.weight) + (6.25 * profile.height) - (5 * profile.age);
       bmr += (profile.sex === 'male') ? 5 : -161;
@@ -1556,7 +1657,7 @@
       const gCal = targetG * 9;
       const remCal = Math.max(0, targetCal - pCal - gCal);
       const targetC = Math.round(remCal / 4);
-      const targetWater = Math.round(profile.weight * 35);
+      const targetWater = computeWaterGoal(profile, false);
 
       return { calGoal: targetCal, pGoal: targetP, cGoal: targetC, gGoal: targetG, waterGoal: targetWater };
     }
@@ -1589,8 +1690,12 @@
       const heightM = profile.height / 100;
       const bmi = profile.weight / (heightM * heightM);
       const goals = recalculateGoals(profile);
+      const act = waterActivityBump(profile.activity);
+      const waterBits = [`${formatNumber(profile.weight)} kg × ${waterMlPerKg(profile.age)} ml/kg`];
+      if (act) waterBits.push(`+ ${act} ml de atividade`);
       box.innerHTML = `IMC: <strong>${bmi.toFixed(1)}</strong> (${bmiLabel(bmi)})<br>
-        Meta: <strong>${goals.calGoal} kcal</strong> · P ${goals.pGoal}g · C ${goals.cGoal}g · G ${goals.gGoal}g · ${goals.waterGoal} ml`;
+        Meta: <strong>${goals.calGoal} kcal</strong> · P ${goals.pGoal}g · C ${goals.cGoal}g · G ${goals.gGoal}g · ${goals.waterGoal} ml<br>
+        Água: ${waterBits.join(' ')} = ${goals.waterGoal} ml`;
     }
 
     function saveProfile(e) {
@@ -1632,7 +1737,7 @@
           if (!state.history || typeof state.history !== 'object') state.history = {};
           if (isCompleteProfile(state.profile)) {
             state.profileSaved = true;
-            if (!state.calGoal) Object.assign(state, recalculateGoals(state.profile));
+            Object.assign(state, recalculateGoals(state.profile));
           } else {
             discardUnsavedProfileDefaults();
           }
